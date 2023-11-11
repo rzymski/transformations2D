@@ -75,7 +75,7 @@ class Transformations2D:
         self.lastFigureNumber = 0
         self.selectedFigure = 0
         self.selectedFigureLabel = None
-        self.offsetX, self.offsetY = 0, 0
+        self.startX, self.startY = None, None
         self.selectedVertex = None
         self.selected = None
 
@@ -157,10 +157,22 @@ class Transformations2D:
             xVector = int(self.xVectorEntry.get())
             yVector = int(self.yVectorEntry.get())
             ic(xVector, yVector, self.figureVertexes)
-            for index in range(len(self.figureVertexes[self.selectedFigure])):
-                self.figureVertexes[self.selectedFigure][index][0] += xVector
-                self.figureVertexes[self.selectedFigure][index][1] += yVector
-                self.drawSpace.coords(self.figureVertexes[self.selectedFigure][index][2], self.figureVertexes[self.selectedFigure][index][0] - 5, self.figureVertexes[self.selectedFigure][index][1] - 5, self.figureVertexes[self.selectedFigure][index][0] + 5, self.figureVertexes[self.selectedFigure][index][1] + 5)
+            # for vertex in (self.figureVertexes[self.selectedFigure]):
+            #     vertex[0] += xVector
+            #     vertex[1] += yVector
+            #     # self.drawSpace.coords(vertex[2], vertex[0] - 5, vertex[1] - 5, vertex[0] + 5, vertex[1] + 5)
+            for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
+                vertex[0] += xVector
+                vertex[1] += yVector
+                entryX, entryY = entry[0], entry[1]
+                entryX.delete(0, END)
+                entryX.insert(0, str(vertex[0]))
+                entryY.delete(0, END)
+                entryY.insert(0, str(vertex[1]))
+            # for index in range(len(self.figureVertexes[self.selectedFigure])):
+            #     self.figureVertexes[self.selectedFigure][index][0] += xVector
+            #     self.figureVertexes[self.selectedFigure][index][1] += yVector
+            #     self.drawSpace.coords(self.figureVertexes[self.selectedFigure][index][2], self.figureVertexes[self.selectedFigure][index][0] - 5, self.figureVertexes[self.selectedFigure][index][1] - 5, self.figureVertexes[self.selectedFigure][index][0] + 5, self.figureVertexes[self.selectedFigure][index][1] + 5)
             self.makeLinesOfVertexes()
     def rotateFigure(self):
         pass
@@ -238,7 +250,6 @@ class Transformations2D:
     def movePointByMouse(self, event):
         if self.selectedFigure and self.selectedVertex and any(self.selectedVertex == sub[2] for sub in self.figureVertexes[self.selectedFigure]):
             x, y = event.x, event.y
-            self.drawSpace.coords(self.selectedVertex, x - self.offsetX, y - self.offsetY, x - self.offsetX + self.drawSpace.coords(self.selectedVertex)[2] - self.drawSpace.coords(self.selectedVertex)[0], y - self.offsetY + self.drawSpace.coords(self.selectedVertex)[3] - self.drawSpace.coords(self.selectedVertex)[1])
             vertex = self.getVertexByPointIndexInCanvas(self.selectedVertex)
             vertexIndex = self.figureVertexes[self.selectedFigure].index(vertex)
             self.figureVertexes[self.selectedFigure][vertexIndex][0], self.figureVertexes[self.selectedFigure][vertexIndex][1] = x, y
@@ -265,8 +276,6 @@ class Transformations2D:
             if selectedVertex:
                 # move point
                 self.selectedVertex = selectedVertex
-                self.offsetX = x - self.drawSpace.coords(self.selectedVertex)[0]
-                self.offsetY = y - self.drawSpace.coords(self.selectedVertex)[1]
             else:
                 # draw point
                 vertex = self.drawSpace.create_rectangle(x - 5, y - 5, x + 5, y + 5, fill="black", tags=f"Vertex{self.selectedFigure}")
@@ -276,16 +285,12 @@ class Transformations2D:
     def moveFigureByMouse(self, event):
         if self.selectedFigure and self.selected:
             x, y = event.x, event.y
-            dx = x - self.startX
-            dy = y - self.startY
-            ic(dx, dy)
+            dx, dy = x - self.startX, y - self.startY
+            self.startX, self.startY = self.startX + dx, self.startY + dy
             for index, entry in enumerate(self.figureEntries[self.selectedFigure]):
                 entryX, entryY = entry[0], entry[1]
                 currentX, currentY = int(entryX.get()), int(entryY.get())
                 newX, newY = currentX + dx, currentY + dy
-
-                ic(newX, newY)
-
                 entryX.delete(0, END)
                 entryX.insert(0, str(newX))
                 entryY.delete(0, END)
@@ -308,12 +313,9 @@ class Transformations2D:
                             selected = shape
                             break
             if selected:
-                self.selected = shape
-                self.offsetX = x - self.drawSpace.coords(self.selected)[0]
-                self.offsetY = y - self.drawSpace.coords(self.selected)[1]
                 self.startX = x
                 self.startY = y
-                ic(self.selected, self.offsetX, self.offsetY)
+                self.selected = selected
 
     def addVertexToFigureLabel(self, x, y):
         if self.selectedFigure and self.selectedFigureLabel:
