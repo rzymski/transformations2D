@@ -15,7 +15,6 @@ class Transformations2D:
         self.frame.pack(side="left", fill="both")
         # Validation
         self.validation = (self.frame.register(self.validateEntry))
-        self.validationPossibleNegative = (self.frame.register(self.validateEntryDigitPossibleNegative))
         self.validationRangeFrom0To360 = (self.frame.register(self.validateEntryRangeFrom0To360))
         # Button to add figure
         self.addFigureButton = Button(self.frame, text="Add figure", command=self.addFigure, padx=12, pady=12)
@@ -43,8 +42,8 @@ class Transformations2D:
         self.xVectorLabel['font'] = self.bigFont
         self.yVectorLabel = Label(self.parameterLabel, text="Y vector")
         self.yVectorLabel['font'] = self.bigFont
-        self.xVectorEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validationPossibleNegative, '%P'), justify=CENTER)
-        self.yVectorEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validationPossibleNegative, '%P'), justify=CENTER)
+        self.xVectorEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validation, '%P'), justify=CENTER)
+        self.yVectorEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validation, '%P'), justify=CENTER)
         self.xPointLabel = Label(self.parameterLabel, text="X start point")
         self.xPointLabel['font'] = self.bigFont
         self.yPointLabel = Label(self.parameterLabel, text="Y start point")
@@ -156,11 +155,6 @@ class Transformations2D:
         if self.xVectorEntry.get() != "" and self.yVectorEntry.get() != "":
             xVector = int(self.xVectorEntry.get())
             yVector = int(self.yVectorEntry.get())
-            ic(xVector, yVector, self.figureVertexes)
-            # for vertex in (self.figureVertexes[self.selectedFigure]):
-            #     vertex[0] += xVector
-            #     vertex[1] += yVector
-            #     # self.drawSpace.coords(vertex[2], vertex[0] - 5, vertex[1] - 5, vertex[0] + 5, vertex[1] + 5)
             for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
                 vertex[0] += xVector
                 vertex[1] += yVector
@@ -169,10 +163,6 @@ class Transformations2D:
                 entryX.insert(0, str(vertex[0]))
                 entryY.delete(0, END)
                 entryY.insert(0, str(vertex[1]))
-            # for index in range(len(self.figureVertexes[self.selectedFigure])):
-            #     self.figureVertexes[self.selectedFigure][index][0] += xVector
-            #     self.figureVertexes[self.selectedFigure][index][1] += yVector
-            #     self.drawSpace.coords(self.figureVertexes[self.selectedFigure][index][2], self.figureVertexes[self.selectedFigure][index][0] - 5, self.figureVertexes[self.selectedFigure][index][1] - 5, self.figureVertexes[self.selectedFigure][index][0] + 5, self.figureVertexes[self.selectedFigure][index][1] + 5)
             self.makeLinesOfVertexes()
     def rotateFigure(self):
         pass
@@ -366,12 +356,8 @@ class Transformations2D:
 
     @staticmethod
     def validateEntry(P):
-        if P == "" or (str.isdigit(P)):
+        if P == "":
             return True
-        return False
-
-    @staticmethod
-    def validateEntryDigitPossibleNegative(P):
         try:
             int(P)
             return True
