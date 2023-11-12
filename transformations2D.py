@@ -7,6 +7,53 @@ import pickle
 from tkinter.filedialog import asksaveasfilename, askopenfilename
 
 
+class HomogeneousCoordinates:
+    @staticmethod
+    def changeCoordinatesToMatrix(x, y):
+        return [[x],
+                [y],
+                [1]]
+
+    @staticmethod
+    def translation(P, Tx, Ty):
+        Ttxty = [[1, 0, Tx],
+                 [0, 1, Ty],
+                 [0, 0, 1]]
+        resultMatrix = [[0],
+                        [0],
+                        [0]]
+        for i in range(3):
+            for j in range(3):
+                resultMatrix[i][0] += Ttxty[i][j] * P[j][0]
+        return resultMatrix
+
+    @staticmethod
+    def rotation(P, alfa):
+        R = [[cos(alfa), -sin(alfa), 0],
+             [sin(alfa), cos(alfa), 0],
+             [0, 0, 1]]
+        resultMatrix = [[0],
+                        [0],
+                        [0]]
+        for i in range(3):
+            for j in range(3):
+                resultMatrix[i][0] += R[i][j] * P[j][0]
+        return resultMatrix
+
+    @staticmethod
+    def scaling(P, Sx, Sy):
+        Ssxsy = [[Sx, 0, 0],
+                 [0, Sy, 0],
+                 [0, 0, 1]]
+        resultMatrix = [[0],
+                        [0],
+                        [0]]
+        for i in range(3):
+            for j in range(3):
+                resultMatrix[i][0] += Ssxsy[i][j] * P[j][0]
+        return resultMatrix
+
+
 class Transformations2D:
     def __init__(self, root):
         self.root = root
@@ -63,20 +110,18 @@ class Transformations2D:
         self.xPointLabel['font'] = self.bigFont
         self.yPointLabel = Label(self.parameterLabel, text="Y start point")
         self.yPointLabel['font'] = self.bigFont
-
         self.entryXVar = StringVar()
         self.xPointEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validation, '%P'), justify=CENTER, textvariable=self.entryXVar)
         self.entryXVar.trace_add("write", self.drawOriginPointOfTheCoordinateSystem)
         self.entryYVar = StringVar()
         self.yPointEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validation, '%P'), justify=CENTER, textvariable=self.entryYVar)
         self.entryYVar.trace_add("write", self.drawOriginPointOfTheCoordinateSystem)
-
         self.degreeLabel = Label(self.parameterLabel, text="Degree value")
         self.degreeLabel['font'] = self.bigFont
         self.degreeEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validationRangeFromMinus360To360, '%P'), justify=CENTER)
-        self.xRatioLabel = Label(self.parameterLabel, text="X percentage")
+        self.xRatioLabel = Label(self.parameterLabel, text="X ratio")
         self.xRatioLabel['font'] = self.bigFont
-        self.yRatioLabel = Label(self.parameterLabel, text="Y percentage")
+        self.yRatioLabel = Label(self.parameterLabel, text="Y ratio")
         self.yRatioLabel['font'] = self.bigFont
         self.xRatioEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validationFloat, '%P'), justify=CENTER)
         self.yRatioEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validationFloat, '%P'), justify=CENTER)
@@ -90,6 +135,7 @@ class Transformations2D:
         self.drawSpace.bind("<B1-Motion>", lambda event: self.doOperation(event, 1))
         self.drawSpace.bind("<ButtonRelease-1>", lambda event: self.doOperation(event, 2))
         self.drawSpace.bind("<ButtonPress-3>", self.drawOriginPointOfTheCoordinateSystemByMouse)
+        # self.drawSpace.bind("<ButtonPress-2>", self.changeSelectedFigure)
         self.figureEntries = {}
         self.figureVertexes = {}
         self.figureLines = {}
@@ -254,13 +300,100 @@ class Transformations2D:
             xVector = int(self.xVectorEntry.get()) if self.xVectorEntry.get() != "" else 0
             yVector = int(self.yVectorEntry.get()) if self.yVectorEntry.get() != "" else 0
             for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
-                vertex[0] += xVector
-                vertex[1] += yVector
+                P = HomogeneousCoordinates.changeCoordinatesToMatrix(vertex[0], vertex[1])
+                Pprim = HomogeneousCoordinates.translation(P, xVector, yVector)
+                vertex[0], vertex[1] = Pprim[0][0], Pprim[1][0]
                 entryX, entryY = entry[0], entry[1]
                 entryX.delete(0, END)
                 entryX.insert(0, str(round(vertex[0])))
                 entryY.delete(0, END)
                 entryY.insert(0, str(round(vertex[1])))
+
+    # def moveFigureByParameter(self):
+    #     if self.xVectorEntry.get() != "" or self.yVectorEntry.get() != "":
+    #         xVector = int(self.xVectorEntry.get()) if self.xVectorEntry.get() != "" else 0
+    #         yVector = int(self.yVectorEntry.get()) if self.yVectorEntry.get() != "" else 0
+    #         for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
+    #             vertex[0] += xVector
+    #             vertex[1] += yVector
+    #             entryX, entryY = entry[0], entry[1]
+    #             entryX.delete(0, END)
+    #             entryX.insert(0, str(round(vertex[0])))
+    #             entryY.delete(0, END)
+    #             entryY.insert(0, str(round(vertex[1])))
+
+    def rotateFigureByParameter(self):
+        if self.degreeEntry.get() != "":
+            xPoint = int(self.xPointEntry.get()) if self.xPointEntry.get() != "" else 0
+            yPoint = int(self.yPointEntry.get()) if self.yPointEntry.get() != "" else 0
+            degree = int(self.degreeEntry.get())
+            degree = radians(degree)
+            for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
+                P = HomogeneousCoordinates.changeCoordinatesToMatrix(vertex[0], vertex[1])
+                # przesuniecie do wspolrzednych (0, 0)
+                P = HomogeneousCoordinates.translation(P, -xPoint, -yPoint)
+                # obrocenie
+                Pprim = HomogeneousCoordinates.rotation(P, degree)
+                # przesuniecie z powrotem
+                Pprim = HomogeneousCoordinates.translation(Pprim, xPoint, yPoint)
+                vertex[0], vertex[1] = Pprim[0][0], Pprim[1][0]
+                entryX, entryY = entry[0], entry[1]
+                entryX.delete(0, END)
+                entryX.insert(0, str(round(vertex[0])))
+                entryY.delete(0, END)
+                entryY.insert(0, str(round(vertex[1])))
+
+    # def rotateFigureByParameter(self):
+    #     if self.degreeEntry.get() != "":
+    #         xPoint = int(self.xPointEntry.get()) if self.xPointEntry.get() != "" else 0
+    #         yPoint = int(self.yPointEntry.get()) if self.yPointEntry.get() != "" else 0
+    #         degree = int(self.degreeEntry.get())
+    #         degree = radians(degree)
+    #         for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
+    #             oldX, oldY = vertex[0], vertex[1]
+    #             vertex[0] = xPoint + (oldX - xPoint) * cos(degree) - (oldY - yPoint) * sin(degree)
+    #             vertex[1] = yPoint + (oldX - xPoint) * sin(degree) + (oldY - yPoint) * cos(degree)
+    #             entryX, entryY = entry[0], entry[1]
+    #             entryX.delete(0, END)
+    #             entryX.insert(0, str(round(vertex[0])))
+    #             entryY.delete(0, END)
+    #             entryY.insert(0, str(round(vertex[1])))
+
+    def scaleFigureByParameter(self):
+        if self.xRatioEntry.get() != "" or self.yRatioEntry.get() != "":
+            xPoint = int(self.xPointEntry.get()) if self.xPointEntry.get() != "" else 0
+            yPoint = int(self.yPointEntry.get()) if self.yPointEntry.get() != "" else 0
+            xRatio = float(self.xRatioEntry.get()) if self.xRatioEntry.get() != "" else 1
+            yRatio = float(self.yRatioEntry.get()) if self.yRatioEntry.get() != "" else 1
+            for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
+                P = HomogeneousCoordinates.changeCoordinatesToMatrix(vertex[0], vertex[1])
+                # przesuniecie do wspolrzednych (0, 0)
+                P = HomogeneousCoordinates.translation(P, -xPoint, -yPoint)
+                # przeskalowanie
+                Pprim = HomogeneousCoordinates.scaling(P, xRatio, yRatio)
+                # przesuniecie z powrotem
+                Pprim = HomogeneousCoordinates.translation(Pprim, xPoint, yPoint)
+                vertex[0], vertex[1] = Pprim[0][0], Pprim[1][0]
+                entryX, entryY = entry[0], entry[1]
+                entryX.delete(0, END)
+                entryX.insert(0, str(round(vertex[0])))
+                entryY.delete(0, END)
+                entryY.insert(0, str(round(vertex[1])))
+
+    # def scaleFigureByParameter(self):
+    #     if self.xRatioEntry.get() != "" or self.yRatioEntry.get() != "":
+    #         xPoint = int(self.xPointEntry.get()) if self.xPointEntry.get() != "" else 0
+    #         yPoint = int(self.yPointEntry.get()) if self.yPointEntry.get() != "" else 0
+    #         xRatio = float(self.xRatioEntry.get()) if self.xRatioEntry.get() != "" else 1
+    #         yRatio = float(self.yRatioEntry.get()) if self.yRatioEntry.get() != "" else 1
+    #         for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
+    #             vertex[0] = xPoint + (vertex[0] - xPoint) * xRatio
+    #             vertex[1] = yPoint + (vertex[1] - yPoint) * yRatio
+    #             entryX, entryY = entry[0], entry[1]
+    #             entryX.delete(0, END)
+    #             entryX.insert(0, str(round(vertex[0])))
+    #             entryY.delete(0, END)
+    #             entryY.insert(0, str(round(vertex[1])))
 
     def drawOriginPointOfTheCoordinateSystemByMouse(self, event):
         operation = int(self.operationType.get())
@@ -280,38 +413,6 @@ class Transformations2D:
         if (variant == 3 or variant == 4) and self.xPointEntry.get() != "" and self.yPointEntry.get() != "":
             x, y = int(self.xPointEntry.get()), int(self.yPointEntry.get())
             self.originPointOfTheCoordinateSystem = self.drawSpace.create_oval(x - 5, y - 5, x + 5, y + 5, fill="red")
-
-    def rotateFigureByParameter(self):
-        if self.degreeEntry.get() != "":
-            xPoint = int(self.xPointEntry.get()) if self.xPointEntry.get() != "" else 0
-            yPoint = int(self.yPointEntry.get()) if self.yPointEntry.get() != "" else 0
-            degree = int(self.degreeEntry.get())
-            degree = radians(degree)
-            for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
-                oldX, oldY = vertex[0], vertex[1]
-                vertex[0] = xPoint + (oldX - xPoint) * cos(degree) - (oldY - yPoint) * sin(degree)
-                vertex[1] = yPoint + (oldX - xPoint) * sin(degree) + (oldY - yPoint) * cos(degree)
-                ic(vertex[0], vertex[1])
-                entryX, entryY = entry[0], entry[1]
-                entryX.delete(0, END)
-                entryX.insert(0, str(round(vertex[0])))
-                entryY.delete(0, END)
-                entryY.insert(0, str(round(vertex[1])))
-
-    def scaleFigureByParameter(self):
-        if self.xRatioEntry.get() != "" or self.yRatioEntry.get() != "":
-            xPoint = int(self.xPointEntry.get()) if self.xPointEntry.get() != "" else 0
-            yPoint = int(self.yPointEntry.get()) if self.yPointEntry.get() != "" else 0
-            xRatio = float(self.xRatioEntry.get()) if self.xRatioEntry.get() != "" else 1
-            yRatio = float(self.yRatioEntry.get()) if self.yRatioEntry.get() != "" else 1
-            for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
-                vertex[0] = xPoint + (vertex[0] - xPoint) * xRatio
-                vertex[1] = yPoint + (vertex[1] - yPoint) * yRatio
-                entryX, entryY = entry[0], entry[1]
-                entryX.delete(0, END)
-                entryX.insert(0, str(round(vertex[0])))
-                entryY.delete(0, END)
-                entryY.insert(0, str(round(vertex[1])))
 
     def addFigure(self):
         number = self.lastFigureNumber = self.lastFigureNumber + 1
@@ -359,6 +460,24 @@ class Transformations2D:
         self.selectedFigure = figureNumber
         self.changeColorOfSelectedFigure("lightgreen")
 
+    # def findFigureWhichItBelong(self, value):
+    #     for figureNumber in self.figureVertexes:
+    #         for vertex in self.figureVertexes[figureNumber]:
+    #             if vertex == value:
+    #                 return figureNumber
+    #         for line in self.figureLines[figureNumber]:
+    #             if line == value:
+    #                 return figureNumber
+    #     return None
+    #
+    # def changeSelectedFigure(self, event):
+    #     x, y = event.x, event.y
+    #     shapes = self.drawSpace.find_overlapping(x, y, x, y)
+    #     if shapes:
+    #         ic(shapes)
+    #         self.selectedFigure = self.findFigureWhichItBelong(shapes[-1])
+    #         ic(self.selectedFigure)
+
     def changeColorOfSelectedFigure(self, color="black"):
         if self.selectedFigure:
             # ic("Wierzcholki:", self.figureVertexes[self.selectedFigure])
@@ -399,6 +518,7 @@ class Transformations2D:
                 self.figureVertexes[self.selectedFigure].append([x, y, vertex])
                 self.addVertexToFigureLabel(x, y)
 
+    # Mowing or drawing single vertex
     def getVertexByPointIndexInCanvas(self, vertexIndexInCanvas):
         for sub in self.figureVertexes[self.selectedFigure]:
             if sub[2] == vertexIndexInCanvas:
