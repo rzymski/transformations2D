@@ -3,6 +3,8 @@ import tkinter.font as font
 from icecream import ic
 from math import cos, sin, radians, atan2
 import re
+import pickle
+from tkinter.filedialog import asksaveasfilename, askopenfilename
 
 
 class Transformations2D:
@@ -15,21 +17,31 @@ class Transformations2D:
         self.root.geometry(f"{self.screen_width}x{self.screen_height}")
         self.frame = LabelFrame(self.root, padx=0, pady=0, labelanchor="w")
         self.frame.pack(side="left", fill="both")
+        self.frameForFigures = LabelFrame(self.root, padx=0, pady=0, labelanchor="w")
+        self.frameForFigures.pack(side="left", fill="both")
         # Validation
         self.validation = (self.frame.register(self.validateEntry))
         self.validationFloat = (self.frame.register(self.validateEntryFloat))
         self.validationRangeFromMinus360To360 = (self.frame.register(self.validateEntryRangeFromMinus360To360))
+        # Button to save
+        self.saveButton = Button(self.frame, text="Save", command=self.saveState, padx=12, pady=12)
+        self.saveButton.grid(row=0, column=0, columnspan=2, sticky="WE")
+        self.saveButton['font'] = self.bigFont
+        # Button to load
+        self.loadButton = Button(self.frame, text="Load", command=self.loadState, padx=12, pady=12)
+        self.loadButton.grid(row=1, column=0, columnspan=2, sticky="WE")
+        self.loadButton['font'] = self.bigFont
         # Button to add figure
         self.addFigureButton = Button(self.frame, text="Add figure", command=self.addFigure, padx=12, pady=12)
-        self.addFigureButton.grid(row=0, column=0, columnspan=2, sticky="WE")
+        self.addFigureButton.grid(row=2, column=0, columnspan=2, sticky="WE")
         self.addFigureButton['font'] = self.bigFont
         # Button to delete figure
         self.deleteFigureButton = Button(self.frame, text="Delete figure", command=self.deleteFigure, padx=12, pady=12)
-        self.deleteFigureButton.grid(row=1, column=0, columnspan=2, sticky="WE")
+        self.deleteFigureButton.grid(row=3, column=0, columnspan=2, sticky="WE")
         self.deleteFigureButton['font'] = self.bigFont
         # Tools
         self.toolsLabel = LabelFrame(self.frame, text=f"Tools")
-        self.toolsLabel.grid(row=2, column=0, columnspan=2, sticky="WE")
+        self.toolsLabel.grid(row=4, column=0, columnspan=2, sticky="WE")
         self.operationType = StringVar(value="1")
         self.cursorTool = Radiobutton(self.toolsLabel, text="Cursor", value="1", variable=self.operationType, command=self.onToolTypeSelect)
         self.cursorTool.grid(row=0, column=0, sticky="W", columnspan=2)
@@ -88,8 +100,65 @@ class Transformations2D:
         self.selectedVertex = None
         self.selected = None
         self.originPointOfTheCoordinateSystem = None
+        self.errorLabel = None
 
-        self.rotationDegree = 0
+    def saveState(self):
+        filename = asksaveasfilename(initialfile='Untitled.pkl', defaultextension=".pkl", filetypes=[("Pickle Files", "*.pkl")])
+        if filename is not None:
+            state = {
+                'figureVertexes': self.figureVertexes,
+            }
+            try:
+                with open(filename, 'wb') as file:
+                    pickle.dump(state, file)
+            except FileNotFoundError:
+                return self.errorPopup("File not found.")
+            except Exception as e:
+                return self.errorPopup(f"Error loading file: {str(e)}")
+            ic(f"Saved to {filename}")
+
+    def loadState(self):
+        filename = askopenfilename()
+        if filename is not None:
+            try:
+                with open(filename, 'rb') as file:
+                    state = pickle.load(file)
+                loadedFigureVertexes = state['figureVertexes']
+            except FileNotFoundError:
+                return self.errorPopup("File not found.")
+            except Exception as e:
+                return self.errorPopup(f"Error loading file: {str(e)}")
+            self.restoreLayoutFromVertexes(loadedFigureVertexes)
+
+    def restoreLayoutFromVertexes(self, newFigureVertexes):
+        self.clearData()
+        for figure in newFigureVertexes.values():
+            self.selectedFigure, self.selectedFigureLabel = self.addFigure()
+            for vertex in figure:
+                self.addVertexByParameters(vertex[0], vertex[1])
+
+    def clearData(self):
+        self.figureEntries = {}
+        self.figureVertexes = {}
+        self.figureLines = {}
+        self.lastFigureNumber = 0
+        self.selectedFigure = 0
+        self.selectedFigureLabel = None
+        self.startX, self.startY = None, None
+        self.selectedVertex = None
+        self.selected = None
+        self.originPointOfTheCoordinateSystem = None
+        self.errorLabel = None
+        self.drawSpace.delete("all")
+        self.frameForFigures.destroy()
+        self.frameForFigures = LabelFrame(self.root, padx=0, pady=0, labelanchor="w")
+        self.frameForFigures.pack(side="left", fill="both")
+        self.drawSpace.pack_forget()
+        self.drawSpace.pack(fill="both", expand=True)
+
+    def errorPopup(self, information=None):
+        self.errorLabel = Label(Toplevel(), text=information, padx=20, pady=20)
+        self.errorLabel.pack(side="top", fill="both", expand=True)
 
     def onToolTypeSelect(self):
         operationType = int(self.operationType.get())
@@ -114,14 +183,14 @@ class Transformations2D:
         self.yRatioEntry.grid_forget()
         self.submitOperationButton.grid_forget()
         if value == 2:
-            self.parameterLabel.grid(row=3, column=0, columnspan=2, sticky="WE")
+            self.parameterLabel.grid(row=5, column=0, columnspan=2, sticky="WE")
             self.xVectorLabel.grid(row=0, column=0)
             self.xVectorEntry.grid(row=1, column=0)
             self.yVectorLabel.grid(row=2, column=0)
             self.yVectorEntry.grid(row=3, column=0)
             self.submitOperationButton.grid(row=4, column=0)
         elif value == 3:
-            self.parameterLabel.grid(row=3, column=0, columnspan=2, sticky="WE")
+            self.parameterLabel.grid(row=5, column=0, columnspan=2, sticky="WE")
             self.xPointLabel.grid(row=0, column=0)
             self.xPointEntry.grid(row=1, column=0)
             self.yPointLabel.grid(row=2, column=0)
@@ -130,7 +199,7 @@ class Transformations2D:
             self.degreeEntry.grid(row=5, column=0)
             self.submitOperationButton.grid(row=6, column=0)
         elif value == 4:
-            self.parameterLabel.grid(row=3, column=0, columnspan=2, sticky="WE")
+            self.parameterLabel.grid(row=5, column=0, columnspan=2, sticky="WE")
             self.xPointLabel.grid(row=0, column=0)
             self.xPointEntry.grid(row=1, column=0)
             self.yPointLabel.grid(row=2, column=0)
@@ -249,8 +318,8 @@ class Transformations2D:
         self.figureEntries[number] = []
         self.figureVertexes[number] = []
         self.figureLines[number] = []
-        figureLabel = LabelFrame(self.frame, text=f"Figure {number}", labelanchor="nw")
-        figureLabel.grid(row=number+3, column=0, columnspan=2, sticky="WE")
+        figureLabel = LabelFrame(self.frameForFigures, text=f"Figure {number}", labelanchor="nw")
+        figureLabel.grid(row=number, column=0, sticky="WE")
         self.onFigureSelect(figureLabel, number)
         # Frame for vertexes
         vertexesLabel = LabelFrame(figureLabel, text="Vertexes positions", labelanchor="nw")
@@ -279,6 +348,7 @@ class Transformations2D:
         # Bind <Button-1> event to all elements within figureLabel
         for widget in figureLabel.winfo_children():
             widget.bind("<Button-1>", lambda event, figureNumber=number: self.onFigureSelect(figureLabel, figureNumber))
+        return number, figureLabel
 
     def onFigureSelect(self, labelFrame, figureNumber):
         if self.selectedFigureLabel:
