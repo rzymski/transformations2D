@@ -147,16 +147,16 @@ class Transformations2D:
             # ic(f"WYkonano operacje {operation} event {event}")
             if operation == 1:
                 if value == 0:
-                    self.drawOrMoveVertex(event)
+                    self.startMoveVertexOrDrawNew(event)
                 elif value == 1:
-                    self.movePointByMouse(event)
+                    self.moveVertexByMouse(event)
                 else:
-                    self.endMovePointByMouse(event)
+                    self.endMoveVertexByMouse(event)
             elif operation == 2:
                 if value == -1:
                     self.moveFigureByParameter()
                 elif value == 0:
-                    self.moveFigure(event)
+                    self.startMoveFigureByMouse(event)
                 elif value == 1:
                     self.moveFigureByMouse(event)
                 else:
@@ -165,18 +165,18 @@ class Transformations2D:
                 if value == -1:
                     self.rotateFigureByParameter()
                 elif value == 0:
-                    self.moveFigureRotate(event)
+                    self.startRotateFigureByMouse(event)
                 elif value == 1:
                     self.rotateFigureByMouse(event)
-                # else:
-                #     self.endMoveFigureByMouse(event)
+                else:
+                    self.endRotateFigureByMouse(event)
             elif operation == 4:
                 self.scaleFigure()
 
     def moveFigureByParameter(self):
-        if self.xVectorEntry.get() != "" and self.yVectorEntry.get() != "":
-            xVector = int(self.xVectorEntry.get())
-            yVector = int(self.yVectorEntry.get())
+        if self.xVectorEntry.get() != "" or self.yVectorEntry.get() != "":
+            xVector = int(self.xVectorEntry.get()) if self.xVectorEntry.get() != "" else 0
+            yVector = int(self.yVectorEntry.get()) if self.yVectorEntry.get() != "" else 0
             for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
                 vertex[0] += xVector
                 vertex[1] += yVector
@@ -187,19 +187,21 @@ class Transformations2D:
                 entryY.insert(0, str(round(vertex[1])))
 
     def drawOriginPointOfTheCoordinateSystemByMouse(self, event):
-        if self.originPointOfTheCoordinateSystem:
-            self.drawSpace.delete(self.originPointOfTheCoordinateSystem)
-        x, y = event.x, event.y
-        self.xPointEntry.delete(0, END)
-        self.xPointEntry.insert(0, str(x))
-        self.yPointEntry.delete(0, END)
-        self.yPointEntry.insert(0, str(y))
+        operation = int(self.operationType.get())
+        if operation == 3 or operation == 4:
+            if self.originPointOfTheCoordinateSystem:
+                self.drawSpace.delete(self.originPointOfTheCoordinateSystem)
+            x, y = event.x, event.y
+            self.xPointEntry.delete(0, END)
+            self.xPointEntry.insert(0, str(x))
+            self.yPointEntry.delete(0, END)
+            self.yPointEntry.insert(0, str(y))
 
     def drawOriginPointOfTheCoordinateSystem(self, *args, variant=3):
         ic(self.xPointEntry.get(), self.yPointEntry.get())
         if self.originPointOfTheCoordinateSystem:
             self.drawSpace.delete(self.originPointOfTheCoordinateSystem)
-        if variant == 3 and self.xPointEntry.get() != "" and self.yPointEntry.get() != "":
+        if (variant == 3 or variant == 4) and self.xPointEntry.get() != "" and self.yPointEntry.get() != "":
             x, y = int(self.xPointEntry.get()), int(self.yPointEntry.get())
             self.originPointOfTheCoordinateSystem = self.drawSpace.create_oval(x - 5, y - 5, x + 5, y + 5, fill="red")
 
@@ -286,28 +288,7 @@ class Transformations2D:
             self.selectedFigure = 0
 
     # Moving vertex by mouse
-    def getVertexByPointIndexInCanvas(self, vertexIndexInCanvas):
-        for sub in self.figureVertexes[self.selectedFigure]:
-            if sub[2] == vertexIndexInCanvas:
-                return sub
-        return None
-
-    def movePointByMouse(self, event):
-        if self.selectedFigure and self.selectedVertex and any(self.selectedVertex == sub[2] for sub in self.figureVertexes[self.selectedFigure]):
-            x, y = event.x, event.y
-            vertex = self.getVertexByPointIndexInCanvas(self.selectedVertex)
-            vertexIndex = self.figureVertexes[self.selectedFigure].index(vertex)
-            self.figureVertexes[self.selectedFigure][vertexIndex][0], self.figureVertexes[self.selectedFigure][vertexIndex][1] = x, y
-            entryX, entryY = self.figureEntries[self.selectedFigure][vertexIndex][0], self.figureEntries[self.selectedFigure][vertexIndex][1]
-            entryX.delete(0, END)
-            entryX.insert(0, str(x))
-            entryY.delete(0, END)
-            entryY.insert(0, str(y))
-
-    def endMovePointByMouse(self, event):
-        self.selectedVertex = None
-
-    def drawOrMoveVertex(self, event):
+    def startMoveVertexOrDrawNew(self, event):
         if self.selectedFigure:
             x, y = event.x, event.y
             shapes = self.drawSpace.find_overlapping(x, y, x, y)
@@ -327,8 +308,29 @@ class Transformations2D:
                 self.figureVertexes[self.selectedFigure].append([x, y, vertex])
                 self.addVertexToFigureLabel(x, y)
 
+    def getVertexByPointIndexInCanvas(self, vertexIndexInCanvas):
+        for sub in self.figureVertexes[self.selectedFigure]:
+            if sub[2] == vertexIndexInCanvas:
+                return sub
+        return None
+
+    def moveVertexByMouse(self, event):
+        if self.selectedFigure and self.selectedVertex and any(self.selectedVertex == sub[2] for sub in self.figureVertexes[self.selectedFigure]):
+            x, y = event.x, event.y
+            vertex = self.getVertexByPointIndexInCanvas(self.selectedVertex)
+            vertexIndex = self.figureVertexes[self.selectedFigure].index(vertex)
+            self.figureVertexes[self.selectedFigure][vertexIndex][0], self.figureVertexes[self.selectedFigure][vertexIndex][1] = x, y
+            entryX, entryY = self.figureEntries[self.selectedFigure][vertexIndex][0], self.figureEntries[self.selectedFigure][vertexIndex][1]
+            entryX.delete(0, END)
+            entryX.insert(0, str(x))
+            entryY.delete(0, END)
+            entryY.insert(0, str(y))
+
+    def endMoveVertexByMouse(self, event):
+        self.selectedVertex = None
+
     # Moving figure by mouse
-    def moveFigure(self, event):
+    def startMoveFigureByMouse(self, event):
         if self.selectedFigure:
             x, y = event.x, event.y
             ic("START", x, y)
@@ -362,10 +364,16 @@ class Transformations2D:
                 entryY.insert(0, str(newY))
 
     def endMoveFigureByMouse(self, event):
-        self.selected = None
+        self.selected, self.startX, self.startY = None, None, None
+
+    # Rotating figure by mouse
+    def startRotateFigureByMouse(self, event):
+        x, y = event.x, event.y
+        self.startX = x
+        self.startY = y
 
     def rotateFigureByMouse(self, event):
-        if self.selectedFigure:
+        if self.selectedFigure and self.xPointEntry.get() != "" and self.yPointEntry.get() != "":
             x, y = event.x, event.y
             # xPoint and yPoint are center of coordinate system
             xPoint, yPoint = float(self.xPointEntry.get()), float(self.yPointEntry.get())
@@ -385,11 +393,8 @@ class Transformations2D:
                 entryY.delete(0, END)
                 entryY.insert(0, str(round(vertex[1])))
 
-    def moveFigureRotate(self, event):
-        if self.selectedFigure:
-            x, y = event.x, event.y
-            self.startX = x
-            self.startY = y
+    def endRotateFigureByMouse(self, event):
+        self.startX, self.startY = None, None
 
     def addVertexToFigureLabel(self, x, y):
         if self.selectedFigure and self.selectedFigureLabel:
@@ -424,7 +429,7 @@ class Transformations2D:
 
     def addVertexByParameters(self, x, y):
         if x and y:
-            self.drawOrMoveVertex(EventWithXY(x, y))
+            self.startMoveVertexOrDrawNew(EventWithXY(x, y))
 
     def vertexEntryChanged(self, figureNumber, row, column, value):
         if value:
