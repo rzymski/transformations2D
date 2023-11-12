@@ -17,7 +17,7 @@ class Transformations2D:
         self.frame.pack(side="left", fill="both")
         # Validation
         self.validation = (self.frame.register(self.validateEntry))
-        # self.validationFloat = (self.frame.register(self.validateEntryFloat))
+        self.validationFloat = (self.frame.register(self.validateEntryFloat))
         self.validationRangeFromMinus360To360 = (self.frame.register(self.validateEntryRangeFromMinus360To360))
         # Button to add figure
         self.addFigureButton = Button(self.frame, text="Add figure", command=self.addFigure, padx=12, pady=12)
@@ -62,12 +62,12 @@ class Transformations2D:
         self.degreeLabel = Label(self.parameterLabel, text="Degree value")
         self.degreeLabel['font'] = self.bigFont
         self.degreeEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validationRangeFromMinus360To360, '%P'), justify=CENTER)
-        self.xFactorLabel = Label(self.parameterLabel, text="X percentage")
-        self.xFactorLabel['font'] = self.bigFont
-        self.yFactorLabel = Label(self.parameterLabel, text="Y percentage")
-        self.yFactorLabel['font'] = self.bigFont
-        self.xFactorEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validation, '%P'), justify=CENTER)
-        self.yFactorEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validation, '%P'), justify=CENTER)
+        self.xRatioLabel = Label(self.parameterLabel, text="X percentage")
+        self.xRatioLabel['font'] = self.bigFont
+        self.yRatioLabel = Label(self.parameterLabel, text="Y percentage")
+        self.yRatioLabel['font'] = self.bigFont
+        self.xRatioEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validationFloat, '%P'), justify=CENTER)
+        self.yRatioEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validationFloat, '%P'), justify=CENTER)
         self.submitOperationButton = Button(self.parameterLabel, text="Execute", command=lambda: self.doOperation("event", -1), padx=8)
         self.submitOperationButton['font'] = font.Font(size=18, weight="bold")
         # White space to draw Bezier Curve
@@ -108,10 +108,10 @@ class Transformations2D:
         self.yPointEntry.grid_forget()
         self.degreeLabel.grid_forget()
         self.degreeEntry.grid_forget()
-        self.xFactorLabel.grid_forget()
-        self.xFactorEntry.grid_forget()
-        self.yFactorLabel.grid_forget()
-        self.yFactorEntry.grid_forget()
+        self.xRatioLabel.grid_forget()
+        self.xRatioEntry.grid_forget()
+        self.yRatioLabel.grid_forget()
+        self.yRatioEntry.grid_forget()
         self.submitOperationButton.grid_forget()
         if value == 2:
             self.parameterLabel.grid(row=3, column=0, columnspan=2, sticky="WE")
@@ -135,10 +135,10 @@ class Transformations2D:
             self.xPointEntry.grid(row=1, column=0)
             self.yPointLabel.grid(row=2, column=0)
             self.yPointEntry.grid(row=3, column=0)
-            self.xFactorLabel.grid(row=4, column=0)
-            self.xFactorEntry.grid(row=5, column=0)
-            self.yFactorLabel.grid(row=6, column=0)
-            self.yFactorEntry.grid(row=7, column=0)
+            self.xRatioLabel.grid(row=4, column=0)
+            self.xRatioEntry.grid(row=5, column=0)
+            self.yRatioLabel.grid(row=6, column=0)
+            self.yRatioEntry.grid(row=7, column=0)
             self.submitOperationButton.grid(row=8, column=0)
 
     def doOperation(self, event, value):
@@ -171,7 +171,14 @@ class Transformations2D:
                 else:
                     self.endRotateFigureByMouse(event)
             elif operation == 4:
-                self.scaleFigure()
+                if value == -1:
+                    self.scaleFigureByParameter()
+                elif value == 0:
+                    self.startScaleFigureByMouse(event)
+                elif value == 1:
+                    self.scaleFigureByMouse(event)
+                else:
+                    self.endScaleFigureByMouse(event)
 
     def moveFigureByParameter(self):
         if self.xVectorEntry.get() != "" or self.yVectorEntry.get() != "":
@@ -206,8 +213,10 @@ class Transformations2D:
             self.originPointOfTheCoordinateSystem = self.drawSpace.create_oval(x - 5, y - 5, x + 5, y + 5, fill="red")
 
     def rotateFigureByParameter(self):
-        if self.xPointEntry.get() != "" and self.yPointEntry.get() != "" and self.degreeEntry.get() != "":
-            xPoint, yPoint, degree = int(self.xPointEntry.get()), int(self.yPointEntry.get()), int(self.degreeEntry.get())
+        if self.degreeEntry.get() != "":
+            xPoint = int(self.xPointEntry.get()) if self.xPointEntry.get() != "" else 0
+            yPoint = int(self.yPointEntry.get()) if self.yPointEntry.get() != "" else 0
+            degree = int(self.degreeEntry.get())
             degree = radians(degree)
             for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
                 oldX, oldY = vertex[0], vertex[1]
@@ -220,8 +229,20 @@ class Transformations2D:
                 entryY.delete(0, END)
                 entryY.insert(0, str(round(vertex[1])))
 
-    def scaleFigure(self):
-        pass
+    def scaleFigureByParameter(self):
+        if self.xRatioEntry.get() != "" or self.yRatioEntry.get() != "":
+            xPoint = int(self.xPointEntry.get()) if self.xPointEntry.get() != "" else 0
+            yPoint = int(self.yPointEntry.get()) if self.yPointEntry.get() != "" else 0
+            xRatio = float(self.xRatioEntry.get()) if self.xRatioEntry.get() != "" else 1
+            yRatio = float(self.yRatioEntry.get()) if self.yRatioEntry.get() != "" else 1
+            for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
+                vertex[0] = xPoint + (vertex[0] - xPoint) * xRatio
+                vertex[1] = yPoint + (vertex[1] - yPoint) * yRatio
+                entryX, entryY = entry[0], entry[1]
+                entryX.delete(0, END)
+                entryX.insert(0, str(round(vertex[0])))
+                entryY.delete(0, END)
+                entryY.insert(0, str(round(vertex[1])))
 
     def addFigure(self):
         number = self.lastFigureNumber = self.lastFigureNumber + 1
@@ -373,10 +394,11 @@ class Transformations2D:
         self.startY = y
 
     def rotateFigureByMouse(self, event):
-        if self.selectedFigure and self.xPointEntry.get() != "" and self.yPointEntry.get() != "":
+        if self.selectedFigure:
             x, y = event.x, event.y
             # xPoint and yPoint are center of coordinate system
-            xPoint, yPoint = float(self.xPointEntry.get()), float(self.yPointEntry.get())
+            xPoint = float(self.xPointEntry.get()) if self.xPointEntry.get() != "" else 0
+            yPoint = float(self.yPointEntry.get()) if self.yPointEntry.get() != "" else 0
             angleMousePoint = atan2(yPoint - y, xPoint - x)
             angleStartPoint = atan2(yPoint - self.startY, xPoint - self.startX)
             # degree is the difference between angles of previous start to actual mouse point
@@ -394,6 +416,35 @@ class Transformations2D:
                 entryY.insert(0, str(round(vertex[1])))
 
     def endRotateFigureByMouse(self, event):
+        self.startX, self.startY = None, None
+
+    # Scaling figure by mouse
+    def startScaleFigureByMouse(self, event):
+        x, y = event.x, event.y
+        self.startX = x
+        self.startY = y
+
+    def scaleFigureByMouse(self, event):
+        if self.selectedFigure:
+            x, y = event.x, event.y
+            # xPoint and yPoint are center of coordinate system
+            xPoint = float(self.xPointEntry.get()) if self.xPointEntry.get() != "" else 0
+            yPoint = float(self.yPointEntry.get()) if self.yPointEntry.get() != "" else 0
+            if xPoint == x or yPoint == y:
+                ic("Center = 0", xPoint, x, yPoint, y)
+                return
+            for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
+                entryX, entryY = entry[0], entry[1]
+                vertex[0] = xPoint + (vertex[0] - xPoint) * ((xPoint - x) / (xPoint - self.startX))
+                vertex[1] = yPoint + (vertex[1] - yPoint) * ((yPoint - y) / (yPoint - self.startY))
+                entryX.delete(0, END)
+                entryX.insert(0, str(round(vertex[0])))
+                entryY.delete(0, END)
+                entryY.insert(0, str(round(vertex[1])))
+            # Replacing old start position with new start position
+            self.startX, self.startY = x, y
+
+    def endScaleFigureByMouse(self, event):
         self.startX, self.startY = None, None
 
     def addVertexToFigureLabel(self, x, y):
@@ -453,13 +504,13 @@ class Transformations2D:
         except ValueError:
             return False
 
-    # @staticmethod
-    # def validateEntryFloat(P):
-    #     pattern = r'^-?\d*(\.\d{0,3})?$'
-    #     if re.match(pattern, P) is not None:
-    #         return True
-    #     else:
-    #         return False
+    @staticmethod
+    def validateEntryFloat(P):
+        pattern = r'^-?\d*(\.\d*)?$'
+        if re.match(pattern, P) is not None:
+            return True
+        else:
+            return False
 
     @staticmethod
     def validateEntryRangeFromMinus360To360(P):
