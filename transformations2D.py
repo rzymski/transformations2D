@@ -1,8 +1,7 @@
-import math
 from tkinter import *
 import tkinter.font as font
 from icecream import ic
-from math import cos, sin, radians, atan2, degrees
+from math import cos, sin, radians, atan2
 import re
 
 
@@ -18,8 +17,8 @@ class Transformations2D:
         self.frame.pack(side="left", fill="both")
         # Validation
         self.validation = (self.frame.register(self.validateEntry))
-        self.validationFloat = (self.frame.register(self.validateEntryFloat))
-        self.validationRangeFrom0To360 = (self.frame.register(self.validateEntryRangeFrom0To360))
+        # self.validationFloat = (self.frame.register(self.validateEntryFloat))
+        self.validationRangeFromMinus360To360 = (self.frame.register(self.validateEntryRangeFromMinus360To360))
         # Button to add figure
         self.addFigureButton = Button(self.frame, text="Add figure", command=self.addFigure, padx=12, pady=12)
         self.addFigureButton.grid(row=0, column=0, columnspan=2, sticky="WE")
@@ -62,7 +61,7 @@ class Transformations2D:
 
         self.degreeLabel = Label(self.parameterLabel, text="Degree value")
         self.degreeLabel['font'] = self.bigFont
-        self.degreeEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validationRangeFrom0To360, '%P'), justify=CENTER)
+        self.degreeEntry = Entry(self.parameterLabel, validate='all', validatecommand=(self.validationRangeFromMinus360To360, '%P'), justify=CENTER)
         self.xFactorLabel = Label(self.parameterLabel, text="X percentage")
         self.xFactorLabel['font'] = self.bigFont
         self.yFactorLabel = Label(self.parameterLabel, text="Y percentage")
@@ -183,9 +182,9 @@ class Transformations2D:
                 vertex[1] += yVector
                 entryX, entryY = entry[0], entry[1]
                 entryX.delete(0, END)
-                entryX.insert(0, str(vertex[0]))
+                entryX.insert(0, str(round(vertex[0])))
                 entryY.delete(0, END)
-                entryY.insert(0, str(vertex[1]))
+                entryY.insert(0, str(round(vertex[1])))
 
     def drawOriginPointOfTheCoordinateSystemByMouse(self, event):
         if self.originPointOfTheCoordinateSystem:
@@ -210,14 +209,14 @@ class Transformations2D:
             degree = radians(degree)
             for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
                 oldX, oldY = vertex[0], vertex[1]
-                vertex[0] = round(xPoint + (oldX - xPoint) * cos(degree) - (oldY - yPoint) * sin(degree), 3)
-                vertex[1] = round(yPoint + (oldX - xPoint) * sin(degree) + (oldY - yPoint) * cos(degree), 3)
+                vertex[0] = xPoint + (oldX - xPoint) * cos(degree) - (oldY - yPoint) * sin(degree)
+                vertex[1] = yPoint + (oldX - xPoint) * sin(degree) + (oldY - yPoint) * cos(degree)
                 ic(vertex[0], vertex[1])
                 entryX, entryY = entry[0], entry[1]
                 entryX.delete(0, END)
-                entryX.insert(0, str(vertex[0]))
+                entryX.insert(0, str(round(vertex[0])))
                 entryY.delete(0, END)
-                entryY.insert(0, str(vertex[1]))
+                entryY.insert(0, str(round(vertex[1])))
 
     def scaleFigure(self):
         pass
@@ -352,10 +351,11 @@ class Transformations2D:
             x, y = event.x, event.y
             dx, dy = x - self.startX, y - self.startY
             self.startX, self.startY = self.startX + dx, self.startY + dy
-            for entry in self.figureEntries[self.selectedFigure]:
+            for entry, vertex in zip(self.figureEntries[self.selectedFigure], self.figureVertexes[self.selectedFigure]):
                 entryX, entryY = entry[0], entry[1]
                 currentX, currentY = int(entryX.get()), int(entryY.get())
                 newX, newY = currentX + dx, currentY + dy
+                vertex[0], vertex[1] = float(newX), float(newY)
                 entryX.delete(0, END)
                 entryX.insert(0, str(newX))
                 entryY.delete(0, END)
@@ -368,23 +368,22 @@ class Transformations2D:
         if self.selectedFigure:
             x, y = event.x, event.y
             # xPoint and yPoint are center of coordinate system
-            xPoint, yPoint = int(self.xPointEntry.get()), int(self.yPointEntry.get())
+            xPoint, yPoint = float(self.xPointEntry.get()), float(self.yPointEntry.get())
             angleMousePoint = atan2(yPoint - y, xPoint - x)
             angleStartPoint = atan2(yPoint - self.startY, xPoint - self.startX)
             # degree is the difference between angles of previous start to actual mouse point
             degree = angleMousePoint - angleStartPoint
             # Replacing old start position with new start position
             self.startX, self.startY = x, y
-
             for vertex, entry in zip(self.figureVertexes[self.selectedFigure], self.figureEntries[self.selectedFigure]):
                 entryX, entryY = entry[0], entry[1]
                 oldX, oldY = vertex[0], vertex[1]
-                vertex[0] = round(xPoint + (oldX - xPoint) * cos(degree) - (oldY - yPoint) * sin(degree), 3)
-                vertex[1] = round(yPoint + (oldX - xPoint) * sin(degree) + (oldY - yPoint) * cos(degree), 3)
+                vertex[0] = xPoint + (oldX - xPoint) * cos(degree) - (oldY - yPoint) * sin(degree)
+                vertex[1] = yPoint + (oldX - xPoint) * sin(degree) + (oldY - yPoint) * cos(degree)
                 entryX.delete(0, END)
-                entryX.insert(0, str(vertex[0]))
+                entryX.insert(0, str(round(vertex[0])))
                 entryY.delete(0, END)
-                entryY.insert(0, str(vertex[1]))
+                entryY.insert(0, str(round(vertex[1])))
 
     def moveFigureRotate(self, event):
         if self.selectedFigure:
@@ -397,12 +396,12 @@ class Transformations2D:
             figureNumber = self.selectedFigure
             rowIndex = len(self.figureVertexes[figureNumber]) - 1
             myVarX = StringVar()
-            entryX = Entry(self.selectedFigureLabel, justify=CENTER, width=8, textvariable=myVarX, validate="all", validatecommand=(self.validationFloat, '%P'))
+            entryX = Entry(self.selectedFigureLabel, justify=CENTER, width=8, textvariable=myVarX, validate="all", validatecommand=(self.validation, '%P'))
             myVarX.trace('w', lambda name, index, mode, var=myVarX, figure=figureNumber, row=rowIndex, col=0: self.vertexEntryChanged(figure, row, col, var.get()))
             entryX.grid(row=rowIndex, column=0, columnspan=2, sticky="ew")
             entryX.insert(0, x)
             myVarY = StringVar()
-            entryY = Entry(self.selectedFigureLabel, justify=CENTER, width=8, textvariable=myVarY, validate="all", validatecommand=(self.validationFloat, '%P'))
+            entryY = Entry(self.selectedFigureLabel, justify=CENTER, width=8, textvariable=myVarY, validate="all", validatecommand=(self.validation, '%P'))
             myVarY.trace('w', lambda name, index, mode, var=myVarY, figure=figureNumber, row=rowIndex, col=1: self.vertexEntryChanged(figure, row, col, var.get()))
             entryY.grid(row=rowIndex, column=2, columnspan=2, sticky="ew")
             entryY.insert(0, y)
@@ -429,8 +428,9 @@ class Transformations2D:
 
     def vertexEntryChanged(self, figureNumber, row, column, value):
         if value:
-            # ic("Change in entry:", figureNumber, row, column, value, self.figureVertexes)
-            self.figureVertexes[figureNumber][row][column] = float(value)
+            if abs(int(value) - self.figureVertexes[figureNumber][row][column]) > 1:
+                ic("Zmienionono entry recznie", value, self.figureVertexes[figureNumber][row][column])
+                self.figureVertexes[figureNumber][row][column] = float(value)
             self.movePointByParameters(self.figureVertexes[figureNumber][row][2], self.figureVertexes[figureNumber][row][0], self.figureVertexes[figureNumber][row][1])
             self.makeLinesOfVertexes()
 
@@ -448,22 +448,24 @@ class Transformations2D:
         except ValueError:
             return False
 
-    @staticmethod
-    def validateEntryFloat(P):
-        pattern = r'^-?\d*(\.\d{0,3})?$'
-        if re.match(pattern, P) is not None:
-            return True
-        else:
-            return False
+    # @staticmethod
+    # def validateEntryFloat(P):
+    #     pattern = r'^-?\d*(\.\d{0,3})?$'
+    #     if re.match(pattern, P) is not None:
+    #         return True
+    #     else:
+    #         return False
 
     @staticmethod
-    def validateEntryRangeFrom0To360(P):
+    def validateEntryRangeFromMinus360To360(P):
         if P == "":
             return True
-        if str.isdigit(P):
+        try:
             intP = int(P)
-            if 0 <= intP <= 360:
-                return True
+        except ValueError:
+            return False
+        if -360 <= intP <= 360:
+            return True
         return False
 
 
