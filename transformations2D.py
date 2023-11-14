@@ -309,6 +309,7 @@ class Transformations2D:
                 entryY.delete(0, END)
                 entryY.insert(0, str(round(vertex[1])))
 
+    # version without use of  Homogeneous Coordinates
     # def moveFigureByParameter(self):
     #     if self.xVectorEntry.get() != "" or self.yVectorEntry.get() != "":
     #         xVector = int(self.xVectorEntry.get()) if self.xVectorEntry.get() != "" else 0
@@ -343,6 +344,7 @@ class Transformations2D:
                 entryY.delete(0, END)
                 entryY.insert(0, str(round(vertex[1])))
 
+    # version without use of  Homogeneous Coordinates
     # def rotateFigureByParameter(self):
     #     if self.degreeEntry.get() != "":
     #         xPoint = int(self.xPointEntry.get()) if self.xPointEntry.get() != "" else 0
@@ -380,6 +382,7 @@ class Transformations2D:
                 entryY.delete(0, END)
                 entryY.insert(0, str(round(vertex[1])))
 
+    # version without use of  Homogeneous Coordinates
     # def scaleFigureByParameter(self):
     #     if self.xRatioEntry.get() != "" or self.yRatioEntry.get() != "":
     #         xPoint = int(self.xPointEntry.get()) if self.xPointEntry.get() != "" else 0
@@ -407,7 +410,7 @@ class Transformations2D:
             self.yPointEntry.insert(0, str(y))
 
     def drawOriginPointOfTheCoordinateSystem(self, *args, variant=3):
-        ic(self.xPointEntry.get(), self.yPointEntry.get())
+        # ic(self.xPointEntry.get(), self.yPointEntry.get())
         if self.originPointOfTheCoordinateSystem:
             self.drawSpace.delete(self.originPointOfTheCoordinateSystem)
         if (variant == 3 or variant == 4) and self.xPointEntry.get() != "" and self.yPointEntry.get() != "":
@@ -544,7 +547,6 @@ class Transformations2D:
     def startMoveFigureByMouse(self, event):
         if self.selectedFigure:
             x, y = event.x, event.y
-            ic("START", x, y)
             shapes = self.drawSpace.find_overlapping(x, y, x, y)
             selected = None
             if shapes:
